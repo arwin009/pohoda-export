@@ -89,7 +89,7 @@ class Export
 		}
 	}
 
-	private function export($exportId, $application, $note = '')
+	public function export($exportId, $application, $note = '')
 	{
 		$xmlText = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
 		<dat:dataPack id=\"" . $exportId . "\" ico=\"" . $this->getIco() . "\" 

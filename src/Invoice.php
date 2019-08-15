@@ -69,6 +69,9 @@ class Invoice
 	/** @var int mnozstvi cizi meny pro kurzovy prepocet  */
 	private $amount = 1;
 
+	/** @var float|null Celkova cena v zahranicni mene (specifikovat pouze pokud nejsou rozepsany jednotlive polozky). */
+	private $priceSum;
+
 
 	private $required = ['date', 'varNum', 'text'];
 
@@ -154,6 +157,11 @@ class Invoice
 	{
 		$this->items[] = $item;
 	}
+
+	public function setInvoiceType($invoiceType)
+    {
+        $this->type = $invoiceType;
+    }
 
 	public function setNumberOrder($order)
 	{
@@ -284,6 +292,13 @@ class Invoice
 		$this->symbolicNumber = $value;
 	}
 
+
+	public function setRoundingDocument(string $roundingDocument)
+    {
+        $this->roundingDocument = $roundingDocument;
+    }
+
+
 	/**
 	 * Set price in nullable VAT
 	 * @param float $priceNone
@@ -348,11 +363,16 @@ class Invoice
 	}
 
 
-
-	public function setForeignCurrency(string $currency, float $rate)
+    /**
+     * @param string $currency
+     * @param float $rate
+     * @param float|null $priceSum Specify the total price if invoice items are not used.
+     */
+	public function setForeignCurrency(string $currency, float $rate, float $priceSum = null)
 	{
 		$this->foreignCurrency = $currency;
 		$this->rate = $rate;
+		$this->priceSum = $priceSum;
 	}
 
 	public function setProviderIdentity($value)
@@ -479,9 +499,10 @@ class Invoice
 			//tuzemske plneni
 			$classification->addChild('typ:classificationVATType', 'inland', Export::NS_TYPE);
 		} else {
-			//nezahrnovat do dph
-			$classification->addChild('typ:ids', 'UN', Export::NS_TYPE);
-			$classification->addChild('typ:classificationVATType', 'nonSubsume', Export::NS_TYPE);
+		    // Dodání zboží do jiného státu EU, daň odvede zákazník (režim reverse charge).
+            $classification->addChild('typ:ids', 'UDdodEU', Export::NS_TYPE);
+            //nezahrnovat do dph
+            $classification->addChild('typ:classificationVATType', 'nonSubsume', Export::NS_TYPE);
 		}
 
 		if (!is_null($this->accounting)) {
@@ -651,31 +672,47 @@ class Invoice
 		$summary->addChild('inv:roundingDocument', $this->roundingDocument); //matematicky na koruny
 		$summary->addChild('inv:roundingVAT', $this->roundingVAT);
 
-		$hc = $summary->addChild("inv:homeCurrency");
-		if (is_null($this->priceNone) === false)
-			$hc->addChild('typ:priceNone', $this->priceNone, Export::NS_TYPE); //cena v nulove sazbe dph
-		if (is_null($this->priceLow) === false)
-			$hc->addChild('typ:priceLow', $this->priceLow, Export::NS_TYPE); //cena bez dph ve snizene sazbe (15)
-		if (is_null($this->priceLowVAT) === false)
-			$hc->addChild('typ:priceLowVAT', $this->priceLowVAT, Export::NS_TYPE); //dph ve snizene sazbe
-		if (is_null($this->priceLowSum) === false)
-			$hc->addChild('typ:priceLowSum', $this->priceLowSum, Export::NS_TYPE); //s dph ve snizene sazbe
-		if (is_null($this->priceHigh) === false)
-			$hc->addChild('typ:priceHigh', $this->priceHigh, Export::NS_TYPE); //cena bez dph ve zvysene sazbe (21)
-		if (is_null($this->priceHightVAT) === false)
-			$hc->addChild('typ:priceHighVAT', $this->priceHightVAT, Export::NS_TYPE);
-		if (is_null($this->priceHighSum) === false)
-			$hc->addChild('typ:priceHighSum', $this->priceHighSum, Export::NS_TYPE);
+		if ($this->foreignCurrency === null) {
+		    // Czech currency.
 
-		if($this->foreignCurrency !== null) {
-			$fc = $summary->addChild('inv:foreignCurrency');
-			$fc->addChild('typ:currency', null, Export::NS_TYPE)->addChild('typ:ids', $this->foreignCurrency, Export::NS_TYPE);
-			$fc->addChild('typ:rate', $this->rate,Export::NS_TYPE);
-			$fc->addChild('typ:amount', $this->amount, Export::NS_TYPE);
-		}
+            $hc = $summary->addChild("inv:homeCurrency");
+            if (is_null($this->priceNone) === false) {
+                $hc->addChild('typ:priceNone', $this->priceNone, Export::NS_TYPE);
+            } //cena v nulove sazbe dph
+            if (is_null($this->priceLow) === false) {
+                $hc->addChild('typ:priceLow', $this->priceLow, Export::NS_TYPE);
+            } //cena bez dph ve snizene sazbe (15)
+            if (is_null($this->priceLowVAT) === false) {
+                $hc->addChild('typ:priceLowVAT', $this->priceLowVAT, Export::NS_TYPE);
+            } //dph ve snizene sazbe
+            if (is_null($this->priceLowSum) === false) {
+                $hc->addChild('typ:priceLowSum', $this->priceLowSum, Export::NS_TYPE);
+            } //s dph ve snizene sazbe
+            if (is_null($this->priceHigh) === false) {
+                $hc->addChild('typ:priceHigh', $this->priceHigh, Export::NS_TYPE);
+            } //cena bez dph ve zvysene sazbe (21)
+            if (is_null($this->priceHightVAT) === false) {
+                $hc->addChild('typ:priceHighVAT', $this->priceHightVAT, Export::NS_TYPE);
+            }
+            if (is_null($this->priceHighSum) === false) {
+                $hc->addChild('typ:priceHighSum', $this->priceHighSum, Export::NS_TYPE);
+            }
 
-		$round = $hc->addChild('typ:round', null, Export::NS_TYPE);
-		$round->addChild('typ:priceRound', 0, Export::NS_TYPE); //Celková suma zaokrouhleni
+            $round = $hc->addChild('typ:round', null, Export::NS_TYPE);
+            $round->addChild('typ:priceRound', 0, Export::NS_TYPE); //Celková suma zaokrouhleni
+
+        } else {
+		    // Foreign currency.
+
+            $fc = $summary->addChild('inv:foreignCurrency');
+            $fc->addChild('typ:currency', null, Export::NS_TYPE)->addChild('typ:ids', $this->foreignCurrency,
+                Export::NS_TYPE);
+            $fc->addChild('typ:rate', $this->rate, Export::NS_TYPE);
+            $fc->addChild('typ:amount', $this->amount, Export::NS_TYPE);
+            if ($this->priceSum !== null) {
+                $fc->addChild('typ:priceSum', $this->priceSum, Export::NS_TYPE);
+            }
+        }
 
 	}
 }

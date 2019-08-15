@@ -1,5 +1,5 @@
 {
-    "name": "unio/pohoda-export",
+    "name": "arwin009/pohoda-export",
     "description": "Export do POHODA ucetnictvi",
     "autoload": {
         "psr-4": {
