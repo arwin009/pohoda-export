@@ -11,7 +11,9 @@ class InvoiceItem
 	const VAT_NONE = "none";
 	const VAT_HIGH = "high";
 	const VAT_LOW = "low";
-	const VAT_THIRD = "third";
+    const VAT_THIRD = "third";
+    const VAT_HISTORY_HIGH = "historyHigh";
+    const VAT_HISTORY_LOW = "historyLow";
 
 	private $text;
 	private $quantity = '1.0';
@@ -157,7 +159,9 @@ class InvoiceItem
 			self::VAT_NONE => "bez DPH",
 			self::VAT_HIGH => "Základní sazba",
 			self::VAT_LOW => "Snížena sazba",
-			self::VAT_THIRD => "2. snížená sazba"
+            self::VAT_THIRD => "2. snížená sazba",
+            self::VAT_HISTORY_HIGH => "Historická základní sazba",
+            self::VAT_HISTORY_LOW => "Historická snížená sazba",
 		];
 
 		Validators::assertKeyInList($rateVAT, $rates);

@@ -119,6 +119,27 @@ $invoice->setForeignCurrency('EUR', 25.826); //iso kod meny
 $item->setForeignUnitPrice(11.43); //cena v cizi mene
 ```
 
+## OSS (DPH v režimu One Stop Shop)
+
+```php
+...
+$invoice->setModeOSS('GD', 'A');
+
+$invoice->setForeignCurrency('EUR', 25.3);
+
+$item = new Pohoda\InvoiceItem();
+$item->setText('Objednávka celkem');
+$item->setQuantity(1);
+$item->setRateVAT($item::VAT_HISTORY_HIGH); // Historická sazba pro OSS.
+$item->setPercentVAT(20);
+$item->setForeignUnitPrice(1000);
+$item->setForeignPrice(1000);
+$item->setForeignPriceVAT(200);
+$invoice->addItem($item);
+...
+```
+
+
 
 ## Storno faktury
 

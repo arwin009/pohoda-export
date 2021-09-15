@@ -42,6 +42,14 @@ class Invoice
 	private $priceHightVAT;
 	private $priceHighSum;
 
+    /**
+     * @var bool One Stop Shop mode for the invoice.
+     * @see https://www.stormware.cz/pohoda/xml/provyvojare/dphrezimmoss/
+     */
+    private $modeOSS = false;
+    private $ossServiceType; // Typ dodání.
+    private $evidentiaryResources; // Důkazní prostředky.
+
 	private $numberOrder; //vlastni cislo objednavky
 
 	private $centre; //stredisko
@@ -81,6 +89,8 @@ class Invoice
 	}
 
 	/**
+     * No effect when mode OSS is active.
+     *
 	 * @param $bool
 	 * @throws InvoiceException
 	 */
@@ -375,6 +385,24 @@ class Invoice
 		$this->priceSum = $priceSum;
 	}
 
+
+    /**
+     * Set OSS (One Stop Shop) mode for the invoice.
+     * Should be used for normal invoices from foreign countries (not for reverse-charge invoices).
+     *
+     * @see https://www.stormware.cz/pohoda/xml/provyvojare/dphrezimmoss/
+     *
+     * @param string $serviceType Druh dodání.
+     * @param string $evidentiaryResources Důkazní prostředky.
+     */
+    public function setModeOSS(string $serviceType, string $evidentiaryResources)
+    {
+        $this->modeOSS = true;
+        $this->ossServiceType = $serviceType;
+        $this->evidentiaryResources = $evidentiaryResources;
+    }
+
+
 	public function setProviderIdentity($value)
 	{
 		if (isset($value['company'])) {
@@ -493,9 +521,17 @@ class Invoice
 		if (!is_null($this->dateAccounting))
 			$header->addChild("inv:dateAccounting", $this->dateAccounting);
 
+        // DUZP pro storno faktury s OSS.
+        if ($this->modeOSS && $this->type === 'issuedCorrectiveTax') {
+            $header->addChild("inv:dateTaxOriginalDocumentMOSS", $this->date);
+        }
+
 
 		$classification = $header->addChild("inv:classificationVAT");
-		if ($this->withVAT) {
+        if ($this->modeOSS) {
+            // Členění DPH nastavit na 'RDzasEU' kvůli účetní.
+            $classification->addChild('typ:ids', 'RDzasEU', Export::NS_TYPE);
+        } elseif ($this->withVAT) {
 			//tuzemske plneni
 			$classification->addChild('typ:classificationVATType', 'inland', Export::NS_TYPE);
 		} else {
@@ -562,6 +598,14 @@ class Invoice
 		if (isset($this->dateOrder)) {
 			$header->addChild("inv:dateOrder", $this->dateOrder);
 		}
+
+        if ($this->modeOSS) {
+            $moss = $header->addChild("inv:MOSS");
+            $moss->addChild("typ:ids", $this->customerAddress->getIdentity()->getAddress()->getCountry(), Export::NS_TYPE);
+
+            $evidentiaryResources = $header->addChild("inv:evidentiaryResourcesMOSS");
+            $evidentiaryResources->addChild("typ:ids", $this->evidentiaryResources, Export::NS_TYPE);
+        }
 	}
 
 	private function exportDetail(SimpleXMLElement $detail)
@@ -578,6 +622,9 @@ class Invoice
 				$item->addChild("inv:rateVAT", $product->getRateVAT());
 			if ($product->getDiscountPercentage())
 				$item->addChild("inv:discountPercentage", $product->getDiscountPercentage());
+            if ($product->getPercentVAT() !== null) {
+                $item->addChild("inv:percentVAT", $product->getPercentVAT());
+            }
 
 			if ($this->foreignCurrency === null) {
 				$hc = $item->addChild("inv:homeCurrency");
@@ -601,6 +648,11 @@ class Invoice
 			$item->addChild("inv:code", $product->getCode());
 			$item->addChild("inv:guarantee", $product->getGuarantee());
 			$item->addChild("inv:guaranteeType", $product->getGuaranteeType());
+
+            if ($this->modeOSS) {
+                $serviceMoss = $item->addChild("inv:typeServiceMOSS");
+                $serviceMoss->addChild("typ:ids", $this->ossServiceType, Export::NS_TYPE);
+            }
 
 			//info o skladove polozce
 			if ($product->getStockItem()) {
