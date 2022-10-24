@@ -61,14 +61,14 @@ class Validators
 
 	public static function isMaxLength($value, $maxLength)
 	{
-		return (mb_strlen($value) <= $maxLength);
+		return (mb_strlen($value ?? '') <= $maxLength);
 	}
 
 
 	public static function assertKeyInList($value, array $list)
 	{
 		if (self::isKeyInList($value, $list) === false) {
-			throw new \InvalidArgumentException("value ($value) is not in " . explode(",", array_keys($list)));
+			throw new \InvalidArgumentException("value ($value) is not in " . explode(",", (string)array_keys($list)));
 		}
 	}
 
