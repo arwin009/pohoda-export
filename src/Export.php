@@ -100,7 +100,8 @@ class Export
 		xmlns:inv=\"". Invoice::NS . "\"
 		xmlns:adb=\"" . Address::NS . "\">
 		</dat:dataPack>";
-		$xml = simplexml_load_string($xmlText);
+
+		$xml = simplexml_load_string($xmlText, SimpleXMLElementExtended::class );
 
 		$i = $a = 0;
 

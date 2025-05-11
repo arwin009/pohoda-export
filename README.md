@@ -146,7 +146,8 @@ $invoice->addItem($item);
 ```php
 ....
 $invoice = new Pohoda\Invoice('storno-324342');
-$invoice->cancelDocument('324342');
+$invoice->cancelDocument('324342'); //stornovat fakturu cislo
+$inovice->cancelNumber('1904'); //ciselna rada faktur pro storno
 $invoice->setText('Storno faktury');
 ```
 

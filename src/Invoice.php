@@ -11,11 +11,15 @@ class Invoice
 {
 	const NS = 'http://www.stormware.cz/schema/version_2/invoice.xsd';
 
-	private $cancel;
+	const INVOICE_TYPE = 'issuedInvoice'; //faktury vydane
+	const CORRECTIVE_TYPE = 'issuedCorrectiveTax'; //opravny danovy doklad
+
+	private $cancel; //cislo stornovaneho dokumentu
+	private $cancelNumber; //ciselna rada pro storno
 
 	private $withVAT = false;
 
-	public $type = 'issuedInvoice'; //normalni faktura
+	public $type = self::INVOICE_TYPE;
 	private $paymentType = 'draft';
 	private $roundingDocument = 'math2one';
 	private $roundingVAT = 'none';
@@ -476,6 +480,11 @@ class Invoice
 		$this->cancel = $id;
 	}
 
+	public function cancelNumber($number)
+	{
+		$this->cancelNumber = $number;
+	}
+
 
 	public function export(SimpleXMLElement $xml)
 	{
@@ -502,6 +511,12 @@ class Invoice
 	{
 		$header->addChild("invoiceType", $this->type);
 		$header->addChild("inv:text", $this->text);
+
+		if($this->cancelNumber !== null) {
+			$num = $header->addChild("inv:number");
+			$num->addChild('typ:ids', $this->cancelNumber, Export::NS_TYPE);
+		}
+
 	}
 
 	private function exportHeader(SimpleXMLElement $header)
