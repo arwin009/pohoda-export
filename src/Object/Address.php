@@ -54,7 +54,7 @@ class Address
 		}
 		if (isset($value['ico'])) {
 			$value['ico'] = $this->removeSpaces($value['ico']);
-			$this->ico = $this->validateItem('ico', $value['ico'], 15, true);
+			$this->ico = $this->validateItem('ico', $value['ico'], 15);
 		}
 		if (isset($value['dic'])) {
 			$value['dic'] = $this->removeSpaces($value['dic']);
