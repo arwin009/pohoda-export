@@ -27,7 +27,7 @@ class Identity
 	 * @param Address $address
 	 * @param Address|null $shippingAddress
 	 */
-	public function __construct($id = null, Address $address, Address $shippingAddress = null)
+	public function __construct($id, Address $address, ?Address $shippingAddress = null)
 	{
 		$this->setId($id);
 		$this->address = $address;

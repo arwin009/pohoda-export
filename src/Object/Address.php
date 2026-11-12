@@ -28,14 +28,15 @@ class Address
 	public function __construct($value)
 	{
 		if (isset($value['name'])) {
-			$this->name = $this->validateItem('name', $value['name'], 32);
+			$this->name = $this->validateItem('name', $value['name'], 64);
 		}
 		if (isset($value['street'])) {
 			$this->street = $this->validateItem('street', $value['street'], 64);
 		}
 		if (isset($value['zip'])) {
 			$value['zip'] = $this->removeSpaces($value['zip']);
-			$this->zip = $this->validateItem('zip', $value['zip'], 15, true);
+			// Not numeric: "44-100" (PL), "6524AB" (NL), a leading zero (DE, FR, IT...). Pohoda takes a string.
+			$this->zip = $this->validateItem('zip', $value['zip'], 15);
 		}
 		if (isset($value['city'])) {
 			$this->city = $this->validateItem('city', $value['city'], 45);
@@ -47,7 +48,7 @@ class Address
 			$this->email = $this->validateItem('email', $value['email'], 98);
 		}
 		if (isset($value['company'])) {
-			$this->company = $this->validateItem('company', $value['company'], 96);
+			$this->company = $this->validateItem('company', $value['company'], 255);
 		}
 		if (isset($value['division'])) {
 			$this->division = $this->validateItem('division', $value['division'], 32);

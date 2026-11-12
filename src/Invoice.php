@@ -29,6 +29,7 @@ class Invoice
 	private $dateTax;
 	private $dateAccounting;
 	private $dateDue;
+	private $dateApplicationVAT; //datum uplatneni DPH
 	private $dateOrder; //datum objednani
 	private $text;
 	private $bankShortcut = 'FIO';
@@ -53,6 +54,7 @@ class Invoice
     private $modeOSS = false;
     private $ossServiceType; // Typ dodání.
     private $evidentiaryResources; // Důkazní prostředky.
+    private $dateTaxOriginalDocumentOSS; // DUZP původního dokladu (jen opravné daňové doklady).
 
 	private $numberOrder; //vlastni cislo objednavky
 
@@ -213,6 +215,15 @@ class Invoice
 		$this->dateDue = $this->convertDate($value);
 	}
 
+	/**
+	 * Set the date of VAT application (datum uplatnění DPH) - when a corrective document enters the VAT return.
+	 */
+	public function setDateApplicationVAT($value)
+	{
+		$this->validateItem('date application VAT', $value, false, false, true);
+		$this->dateApplicationVAT = $this->convertDate($value);
+	}
+
 	public function setDateOrder($value)
 	{
 		$this->validateItem('date order', $value, false, false, true);
@@ -250,7 +261,7 @@ class Invoice
 		];
 
 		if (is_null($value) || !isset($payments[$value])) {
-			throw new InvoiceException($this->getId() . ": payment type $value is not supported. Use one of these: " . explode(",", array_keys($payments)));
+			throw new InvoiceException($this->getId() . ": payment type $value is not supported. Use one of these: " . implode(", ", array_keys($payments)));
 		}
 		$this->paymentType = $value;
 	}
@@ -382,7 +393,7 @@ class Invoice
      * @param float $rate
      * @param float|null $priceSum Specify the total price if invoice items are not used.
      */
-	public function setForeignCurrency(string $currency, float $rate, float $priceSum = null)
+	public function setForeignCurrency(string $currency, float $rate, ?float $priceSum = null)
 	{
 		$this->foreignCurrency = $currency;
 		$this->rate = $rate;
@@ -407,6 +418,17 @@ class Invoice
     }
 
 
+    /**
+     * Set the tax date (DUZP) of the original invoice for a corrective document in OSS mode.
+     * Without it, the date of the corrective document itself is exported.
+     */
+    public function setDateTaxOriginalDocumentOSS($value)
+    {
+        $this->validateItem('date tax original document OSS', $value, false, false, true);
+        $this->dateTaxOriginalDocumentOSS = $this->convertDate($value);
+    }
+
+
 	public function setProviderIdentity($value)
 	{
 		if (isset($value['company'])) {
@@ -421,7 +443,7 @@ class Invoice
 		}
 		if (isset($value['zip'])) {
 			$value['zip'] = $this->removeSpaces($value['zip']);
-			$this->validateItem('provider - zip', $value['zip'], 15, true);
+			$this->validateItem('provider - zip', $value['zip'], 15);
 		}
 		if (isset($value['city'])) {
 			$this->validateItem('provider - city', $value['city'], 45);
@@ -535,10 +557,12 @@ class Invoice
 			$header->addChild("inv:dateDue", $this->dateDue);
 		if (!is_null($this->dateAccounting))
 			$header->addChild("inv:dateAccounting", $this->dateAccounting);
+		if (!is_null($this->dateApplicationVAT))
+			$header->addChild("inv:dateApplicationVAT", $this->dateApplicationVAT);
 
-        // DUZP pro storno faktury s OSS.
+        // DUZP původního dokladu pro storno faktury s OSS.
         if ($this->modeOSS && $this->type === 'issuedCorrectiveTax') {
-            $header->addChild("inv:dateTaxOriginalDocumentMOSS", $this->date);
+            $header->addChild("inv:dateTaxOriginalDocumentMOSS", $this->dateTaxOriginalDocumentOSS ?? $this->date);
         }
 
 

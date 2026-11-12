@@ -139,6 +139,16 @@ $invoice->addItem($item);
 ...
 ```
 
+Opravný daňový doklad (storno) v režimu OSS potřebuje navíc DUZP původní faktury a datum uplatnění DPH:
+
+```php
+...
+$invoice->setInvoiceType($invoice::CORRECTIVE_TYPE);
+$invoice->setModeOSS('GD', 'A');
+$invoice->setDateTaxOriginalDocumentOSS('2026-10-28'); // DUZP původní faktury, výchozí je datum opravného dokladu.
+$invoice->setDateApplicationVAT('2026-10-30'); // Datum uplatnění DPH.
+...
+```
 
 
 ## Storno faktury
@@ -147,7 +157,7 @@ $invoice->addItem($item);
 ....
 $invoice = new Pohoda\Invoice('storno-324342');
 $invoice->cancelDocument('324342'); //stornovat fakturu cislo
-$inovice->cancelNumber('1904'); //ciselna rada faktur pro storno
+$invoice->cancelNumber('1904'); //ciselna rada faktur pro storno
 $invoice->setText('Storno faktury');
 ```
 

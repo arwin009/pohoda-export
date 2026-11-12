@@ -68,7 +68,7 @@ class Validators
 	public static function assertKeyInList($value, array $list)
 	{
 		if (self::isKeyInList($value, $list) === false) {
-			throw new \InvalidArgumentException("value ($value) is not in " . explode(",", (string)array_keys($list)));
+			throw new \InvalidArgumentException("value ($value) is not in " . implode(", ", array_keys($list)));
 		}
 	}
 
